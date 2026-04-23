@@ -234,7 +234,9 @@ function ScreenMain() {
                 <View style={{ padding: 10 }}>
                   <Text>{item.name}</Text>
                   <Text>R$ {item.value}</Text>
-              )}/>
+                </View>
+              )}
+            />
           </View>
         </View>
       </SafeAreaView>
