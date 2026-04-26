@@ -2,7 +2,12 @@ import { Ionicons } from "@expo/vector-icons";
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { initializeApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
+import { 
+  getAuth, 
+  signOut, 
+  signInWithEmailAndPassword, 
+  createUserWithEmailAndPassword 
+} from "firebase/auth";
 import { useEffect, useState } from "react";
 import {
   FlatList,
@@ -10,9 +15,14 @@ import {
   Text,
   TouchableOpacity,
   View,
+  StatusBar,
+  TextInput,
+  Image,
+  Alert
 } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 
+// 1. Configuração do Firebase
 const firebaseConfig = {
   apiKey: "AIzaSyC3iEmAtXSYFTO_BtVD_Tk6ARafskIzW18",
   authDomain: "app-teste-2dabd.firebaseapp.com",
@@ -22,32 +32,34 @@ const firebaseConfig = {
   appId: "1:20656501737:web:692778d2471ecdd644d178",
 };
 
-// Initialize Firebase
 const app = initializeApp(firebaseConfig);
-
+const auth = getAuth(app);
 const Stack = createNativeStackNavigator();
-
-/* <Stack.Screen
-            name="Login"
-            component={ScreenLogin}
-            options={{ headerShown: false }}
-          /> 
-          <Stack.Screen name="Cadastrar" component={ScreenCadastrar} /> 
-*/
 
 export default function App() {
   return (
     <SafeAreaProvider>
       <NavigationContainer>
-        <Stack.Navigator initialRouteName="Main">
+        <Stack.Navigator initialRouteName="Login">
+          <Stack.Screen 
+            name="Login" 
+            component={ScreenLogin} 
+            options={{ headerShown: false }} 
+          />
+          <Stack.Screen 
+            name="Cadastrar" 
+            component={ScreenCadastrar} 
+            options={{ title: 'Criar Conta' }}
+          />
           <Stack.Screen
             name="Main"
             component={ScreenMain}
             options={({ navigation }) => ({
+              headerTitle: "Painel de Cotações",
               headerRight: () => (
                 <TouchableOpacity
                   onPress={() => {
-                    Logout();
+                    signOut(auth).then(() => navigation.replace("Login"));
                   }}
                   style={{ marginRight: 15 }}
                 >
@@ -62,185 +74,160 @@ export default function App() {
   );
 }
 
-function Logout() {
-  const auth = getAuth();
-  signOut(auth)
-    .then(() => {
-      navigation.navigate("Login");
-    })
-    .catch((error) => {
-      console.log(error);
-    });
+function ScreenLogin({ navigation }) {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+
+  const handleLogin = () => {
+    signInWithEmailAndPassword(auth, email, password)
+      .then(() => navigation.replace("Main"))
+      .catch((error) => Alert.alert("Erro", "E-mail ou senha inválidos."));
+  };
+
+  return (
+    <View style={styles.container}>
+      <StatusBar barStyle="dark-content" />
+      <Image
+        style={styles.loginLogo}
+        source={{ uri: "https://marketplace.canva.com/A5alg/MAESXCA5alg/1/tl/canva-user-icon-MAESXCA5alg.png" }}
+      />
+      <View style={styles.container_inputs}>
+        <Text style={styles.label}>E-mail</Text>
+        <TextInput 
+          style={styles.input} 
+          value={email} 
+          onChangeText={setEmail} 
+          autoCapitalize="none" 
+          placeholder="exemplo@email.com" 
+        />
+        <Text style={styles.label}>Senha</Text>
+        <TextInput 
+          style={styles.input} 
+          value={password} 
+          onChangeText={setPassword} 
+          secureTextEntry 
+          placeholder="******" 
+        />
+      </View>
+      <View style={styles.container_btn}>
+        <TouchableOpacity style={styles.botao} onPress={handleLogin}>
+          <Text style={styles.texto}>Entrar</Text>
+        </TouchableOpacity>
+        <TouchableOpacity onPress={() => navigation.navigate("Cadastrar")}>
+          <Text style={{ textAlign: 'center', color: '#2b3066', marginTop: 15 }}>Não tem conta? Cadastre-se</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
 }
 
-/* function ScreenLogin({ navigation }) {
+// 4. Tela de Cadastro
+function ScreenCadastrar({ navigation }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  function checkAuth() {
-    const auth = getAuth();
-    signInWithEmailAndPassword(auth, email, password)
-      .then((userCredential) => {
-        navigation.navigate("Main");
-        const user = userCredential.user;
-        // ...
-      })
-      .catch((error) => {
-        const errorCode = error.code;
-        const errorMessage = error.message;
-      });
-  }
-
-  return (
-    <View style={styles.container}>
-      <StatusBar style="auto" />
-
-      <Image
-        style={styles.tinyLogo}
-        source={{
-          uri: "https://marketplace.canva.com/A5alg/MAESXCA5alg/1/tl/canva-user-icon-MAESXCA5alg.png",
-        }}
-      />
-
-      <View style={styles.container_inputs}>
-        <Text>Login</Text>
-        <TextInput
-          style={styles.input}
-          value={email}
-          onChangeText={setEmail}
-          autoCapitalize="none"
-        />
-
-        <Text>Senha</Text>
-        <TextInput
-          style={styles.input}
-          value={password}
-          onChangeText={setPassword}
-          secureTextEntry
-        />
-      </View>
-
-      <View style={styles.container_btn}>
-        <TouchableOpacity style={styles.botao} onPress={checkAuth}>
-          <Text style={styles.texto}>Login</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.botao}
-          onPress={() => navigation.navigate("Cadastrar")}
-        >
-          <Text style={styles.texto}>Cadastro</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
-  );
-} /* 
-
-/* function ScreenCadastrar({ navigation }) {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-
-  function cadastrar() {
-    const auth = getAuth();
+  const handleSignup = () => {
     createUserWithEmailAndPassword(auth, email, password)
-      .then((userCredential) => {
-        const user = userCredential.user;
+      .then(() => {
+        Alert.alert("Sucesso", "Conta criada!");
         navigation.navigate("Login");
-        console.log("Cadastro realizado com sucesso!");
-        // ...
       })
-      .catch((error) => {
-        const errorCode = error.code;
-        const errorMessage = error.message;
-        // ..
-      });
-  }
+      .catch((error) => Alert.alert("Erro", error.message));
+  };
 
   return (
     <View style={styles.container}>
       <View style={styles.container_inputs}>
-        <Text>Email</Text>
-        <TextInput
-          style={styles.input}
-          value={email}
-          onChangeText={setEmail}
-          keyboardType="email-address"
-          autoCapitalize="none"
-        />
-
-        <Text>Senha</Text>
-        <TextInput
-          style={styles.input}
-          value={password}
-          onChangeText={setPassword}
-        />
+        <Text style={styles.label}>E-mail</Text>
+        <TextInput style={styles.input} value={email} onChangeText={setEmail} autoCapitalize="none" />
+        <Text style={styles.label}>Senha</Text>
+        <TextInput style={styles.input} value={password} onChangeText={setPassword} secureTextEntry />
       </View>
-
       <View style={styles.container_btn}>
-        <TouchableOpacity style={styles.botao} onPress={cadastrar}>
-          <Text style={styles.texto}>Cadastrar</Text>
+        <TouchableOpacity style={styles.botaosalvar} onPress={handleSignup}>
+          <Text style={styles.texto}>Finalizar Cadastro</Text>
         </TouchableOpacity>
       </View>
     </View>
   );
-} */
+}
 
+// 5. Tela Principal (Cotações)
 function ScreenMain() {
-  const [data, setData] = useState(null);
+  const [data, setData] = useState([]);
+  const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    async function load() {
-      try {
-        const res = await fetch("https://economia.awesomeapi.com.br/json/all");
-        const json = await res.json();
+  async function load() {
+    setLoading(true);
+    try {
+      const res = await fetch("https://economia.awesomeapi.com.br/json/all");
+      const json = await res.json();
+      const moedasInteresse = ['USD', 'EUR', 'LTC'];
 
-        const formatted = Object.keys(json).map((key) => ({
+      const formatted = Object.keys(json)
+        .filter((key) => moedasInteresse.includes(key))
+        .map((key) => ({
           id: key,
-          name: key,
+          name: json[key].name.split("/")[0],
           value: json[key].bid,
         }));
 
-        setData(formatted);
-      } catch (err) {
-        console.log(err);
-      }
+      setData(formatted);
+    } catch (err) {
+      Alert.alert("Erro", "Falha ao carregar cotações.");
+    } finally {
+      setLoading(false);
     }
+  }
 
+  useEffect(() => {
     load();
   }, []);
 
   return (
-    <SafeAreaProvider>
-      <SafeAreaView
-        style={{
-          flex: 1,
-          backgroundColor: "rgba(255, 254, 254, 0.93)",
-          alignItems: "center",
-        }}
-      >
-        <View style={styles.top}>
-          <View style={styles.card}>
-            <Text style={{ fontWeight: "bold", fontSize: 18 }}>
-              Cotação Atual
-            </Text>
-            <Text style={{ fontSize: 14 }}>Última atualização: 10:35 AM</Text>
-          </View>
-
-          <View style={{ justifyContent: "center" }}>
-            <FlatList
-              data={data}
-              keyExtractor={(item) => item.id}
-              renderItem={({ item }) => (
-                <View style={{ padding: 10 }}>
-                  <Text>{item.name}</Text>
-                  <Text>R$ {item.value}</Text>
-                </View>
-              )}
-            />
-          </View>
+    <SafeAreaView style={styles.mainContainer}>
+      <View style={styles.topHeader}>
+        <Text style={styles.headerTitle}>
+          Conversor de{"\n"}Moedas <Text style={{ color: '#E9AD8C' }}>Pro</Text>
+        </Text>
+        <View style={styles.statusCard}>
+          <Text style={styles.statusTitle}>Cotação Atual</Text>
+          <Text style={styles.statusSubtitle}>
+            {loading ? "Atualizando..." : "Baseado em dados em tempo real"}
+          </Text>
         </View>
-      </SafeAreaView>
-    </SafeAreaProvider>
+      </View>
+
+      <View style={{ flex: 1, width: '100%' }}>
+        <FlatList
+          data={data}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item }) => (
+            <View style={styles.itemMoeda}>
+              <View>
+                <Text style={styles.siglaMoeda}>{item.id} / BRL</Text>
+                <Text style={styles.nomeMoeda}>1 {item.name}</Text>
+              </View>
+              <Text style={styles.valorMoeda}>
+                R$ {parseFloat(item.value).toFixed(2)}
+              </Text>
+            </View>
+          )}
+          contentContainerStyle={{ paddingTop: 80, paddingBottom: 100 }}
+        />
+      </View>
+
+      <TouchableOpacity 
+        style={[styles.updateButton, { opacity: loading ? 0.7 : 1 }]} 
+        onPress={load}
+        disabled={loading}
+      >
+        <Ionicons name="refresh" size={20} color="white" style={{ marginRight: 10 }} />
+        <Text style={styles.updateButtonText}>
+          {loading ? "Carregando..." : "Atualizar Cotações"}
+        </Text>
+      </TouchableOpacity>
+    </SafeAreaView>
   );
 }
 
@@ -250,86 +237,80 @@ const styles = StyleSheet.create({
     backgroundColor: "#ffffff",
     alignItems: "center",
     justifyContent: "center",
-    padding: 10,
+    padding: 20,
   },
-
-  top: {
-    backgroundColor: "#2b3066",
-    borderBottomLeftRadius: 25,
-    borderBottomRightRadius: 25,
-    width: "100%",
-    height: "20%",
-    flexDirection: "row",
-    justifyContent: "center",
-    paddingHorizontal: 15,
-  },
-
-  card: {
-    backgroundColor: "#ffffff",
-    width: "95%",
-    height: "50%",
-    borderRadius: 15,
-    marginTop: 120,
-    alignItems: "center",
-    justifyContent: "center",
-
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-
-    elevation: 6,
-  },
-
-  tinyLogo: {
-    width: 50,
-    height: 50,
-    marginBottom: 20,
-    borderRadius: 25,
-  },
-
+  loginLogo: { width: 80, height: 80, marginBottom: 30, borderRadius: 40 },
+  label: { alignSelf: 'flex-start', color: '#333', fontWeight: 'bold', marginTop: 10 },
   input: {
-    backgroundColor: "#fff",
-    height: 40,
+    backgroundColor: "#f9f9f9",
+    width: '100%',
+    height: 50,
     marginVertical: 8,
     borderWidth: 1,
-    padding: 10,
-    borderRadius: 5,
-  },
-
-  botao: {
-    backgroundColor: "rgb(0, 170, 255)",
+    borderColor: '#ddd',
     padding: 15,
-    borderRadius: 8,
+    borderRadius: 10,
+  },
+  botao: { backgroundColor: "#2b3066", padding: 15, borderRadius: 10, alignItems: "center", width: '100%' },
+  botaosalvar: { backgroundColor: "#28a745", padding: 15, borderRadius: 10, alignItems: "center", width: '100%' },
+  texto: { color: "#fff", fontWeight: "bold", fontSize: 16 },
+  container_btn: { marginTop: 20, width: '100%', maxWidth: 300 },
+  container_inputs: { width: '100%', maxWidth: 300 },
+
+  mainContainer: { flex: 1, backgroundColor: '#F2F2F2' },
+  topHeader: {
+    backgroundColor: "#2b3066",
+    height: 180,
+    borderBottomLeftRadius: 40,
+    borderBottomRightRadius: 40,
+    alignItems: 'center',
+    paddingTop: 30,
+    zIndex: 1,
+  },
+  headerTitle: { fontSize: 28, color: "#fff", fontWeight: 'bold', textAlign: 'center' },
+  statusCard: {
+    backgroundColor: "#fff",
+    width: "85%",
+    padding: 18,
+    borderRadius: 20,
+    position: 'absolute',
+    bottom: -35,
+    alignItems: 'center',
+    elevation: 8,
+    shadowColor: "#000",
+    shadowOpacity: 0.2,
+    shadowRadius: 5,
+  },
+  statusTitle: { fontSize: 18, fontWeight: 'bold', color: '#2b3066' },
+  statusSubtitle: { fontSize: 12, color: '#888' },
+
+  itemMoeda: {
+    backgroundColor: "#FFFFFF",
+    flexDirection: "row",
+    justifyContent: "space-between",
     alignItems: "center",
+    padding: 20,
+    marginHorizontal: 20,
+    marginVertical: 8,
+    borderRadius: 15,
+    elevation: 2,
   },
+  siglaMoeda: { fontSize: 18, fontWeight: "bold", color: "#2b3066" },
+  nomeMoeda: { fontSize: 12, color: "#888" },
+  valorMoeda: { fontSize: 18, fontWeight: "600", color: "#28a745" },
 
-  botaosalvar: {
-    backgroundColor: "rgb(72, 234, 83)",
-    padding: 15,
-    borderRadius: 8,
-    alignItems: "center",
+  updateButton: {
+    backgroundColor: '#5BA092',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 18,
+    borderRadius: 30,
+    position: 'absolute',
+    bottom: 20,
+    left: 20,
+    right: 20,
+    elevation: 5,
   },
-
-  botaoexcluir: {
-    backgroundColor: "rgb(225, 42, 42)",
-    padding: 15,
-    borderRadius: 8,
-    alignItems: "center",
-  },
-
-  texto: {
-    color: "#fff",
-    fontWeight: "bold",
-  },
-
-  container_btn: {
-    gap: 10,
-    marginTop: 20,
-    width: 200,
-  },
-
-  container_inputs: {
-    width: 200,
-  },
+  updateButtonText: { color: 'white', fontSize: 16, fontWeight: 'bold' },
 });
