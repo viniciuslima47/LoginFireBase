@@ -2,11 +2,11 @@ import { Ionicons } from "@expo/vector-icons";
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { initializeApp } from "firebase/app";
-import { 
-  getAuth, 
-  signOut, 
-  signInWithEmailAndPassword, 
-  createUserWithEmailAndPassword 
+import {
+  getAuth,
+  signOut,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword
 } from "firebase/auth";
 import { useEffect, useState } from "react";
 import {
@@ -18,7 +18,8 @@ import {
   StatusBar,
   TextInput,
   Image,
-  Alert
+  Alert,
+  ActivityIndicator
 } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 
@@ -41,14 +42,14 @@ export default function App() {
     <SafeAreaProvider>
       <NavigationContainer>
         <Stack.Navigator initialRouteName="Login">
-          <Stack.Screen 
-            name="Login" 
-            component={ScreenLogin} 
-            options={{ headerShown: false }} 
+          <Stack.Screen
+            name="Login"
+            component={ScreenLogin}
+            options={{ headerShown: false }}
           />
-          <Stack.Screen 
-            name="Cadastrar" 
-            component={ScreenCadastrar} 
+          <Stack.Screen
+            name="Cadastrar"
+            component={ScreenCadastrar}
             options={{ title: 'Criar Conta' }}
           />
           <Stack.Screen
@@ -93,20 +94,20 @@ function ScreenLogin({ navigation }) {
       />
       <View style={styles.container_inputs}>
         <Text style={styles.label}>E-mail</Text>
-        <TextInput 
-          style={styles.input} 
-          value={email} 
-          onChangeText={setEmail} 
-          autoCapitalize="none" 
-          placeholder="exemplo@email.com" 
+        <TextInput
+          style={styles.input}
+          value={email}
+          onChangeText={setEmail}
+          autoCapitalize="none"
+          placeholder="exemplo@email.com"
         />
         <Text style={styles.label}>Senha</Text>
-        <TextInput 
-          style={styles.input} 
-          value={password} 
-          onChangeText={setPassword} 
-          secureTextEntry 
-          placeholder="******" 
+        <TextInput
+          style={styles.input}
+          value={password}
+          onChangeText={setPassword}
+          secureTextEntry
+          placeholder="******"
         />
       </View>
       <View style={styles.container_btn}>
@@ -152,25 +153,53 @@ function ScreenCadastrar({ navigation }) {
   );
 }
 
-// 5. Tela Principal (Cotações)
+// 5. Tela Principal 
 function ScreenMain() {
+
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [clickTime, setClickTime] = useState(null);
+
+  const paises = {
+    USD: "us",
+    USDT: "us",
+    EUR: "eu",
+    BRL: "br",
+    GBP: "gb",
+    ARS: "ar",
+    CAD: "ca",
+    AUD: "au",
+    JPY: "jp",
+    CNY: "cn",
+  };
 
   async function load() {
     setLoading(true);
     try {
+
+      const now = new Date();
+      setClickTime(
+        now.toLocaleTimeString([], {
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: false
+        })
+      );
+
       const res = await fetch("https://economia.awesomeapi.com.br/json/all");
       const json = await res.json();
-      const moedasInteresse = ['USD', 'EUR', 'LTC'];
 
-      const formatted = Object.keys(json)
-        .filter((key) => moedasInteresse.includes(key))
-        .map((key) => ({
+      const formatted = Object.keys(json).map((key) => {
+        const currency = key.split("-")[0];
+
+        return {
           id: key,
+          currency,
           name: json[key].name.split("/")[0],
           value: json[key].bid,
-        }));
+          flag: `https://flagcdn.com/w40/${paises[currency] || "un"}.png`,
+        };
+      });
 
       setData(formatted);
     } catch (err) {
@@ -188,41 +217,82 @@ function ScreenMain() {
     <SafeAreaView style={styles.mainContainer}>
       <View style={styles.topHeader}>
         <Text style={styles.headerTitle}>
-          Conversor de{"\n"}Moedas <Text style={{ color: '#E9AD8C' }}>Pro</Text>
+          Conversor de{"\n"}Moedas{" "}
+          <Text style={{ color: "#E9AD8C" }}>Pro</Text>
         </Text>
+
         <View style={styles.statusCard}>
           <Text style={styles.statusTitle}>Cotação Atual</Text>
           <Text style={styles.statusSubtitle}>
-            {loading ? "Atualizando..." : "Baseado em dados em tempo real"}
+            {loading
+              ? "Atualizando..."
+              : `Última atualização: ${clickTime}`}
           </Text>
         </View>
       </View>
 
-      <View style={{ flex: 1, width: '100%' }}>
-        <FlatList
-          data={data}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item }) => (
-            <View style={styles.itemMoeda}>
-              <View>
-                <Text style={styles.siglaMoeda}>{item.id} / BRL</Text>
-                <Text style={styles.nomeMoeda}>1 {item.name}</Text>
+      <View style={{ flex: 1, width: "100%" }}>
+        {loading && data.length === 0 ? (
+          <ActivityIndicator size="large" />
+        ) : (
+          <FlatList
+            data={data}
+            keyExtractor={(item) => item.id}
+            contentContainerStyle={{
+              paddingTop: 80,
+              paddingBottom: 100,
+            }}
+            renderItem={({ item }) => (
+              <View style={styles.itemMoeda}>
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                  }}
+                >
+                  <Image
+                    source={{ uri: item.flag }}
+                    style={{
+                      width: 40,
+                      height: 30,
+                      marginRight: 10,
+                      borderRadius: 4,
+                    }}
+                  />
+
+                  <View>
+                    <Text style={styles.siglaMoeda}>
+                      {item.currency} / BRL
+                    </Text>
+                    <Text style={styles.nomeMoeda}>
+                      1 {item.name}
+                    </Text>
+                  </View>
+                </View>
+
+                <Text style={styles.valorMoeda}>
+                  R$ {parseFloat(item.value).toFixed(2)}
+                </Text>
               </View>
-              <Text style={styles.valorMoeda}>
-                R$ {parseFloat(item.value).toFixed(2)}
-              </Text>
-            </View>
-          )}
-          contentContainerStyle={{ paddingTop: 80, paddingBottom: 100 }}
-        />
+            )}
+          />
+        )}
       </View>
 
-      <TouchableOpacity 
-        style={[styles.updateButton, { opacity: loading ? 0.7 : 1 }]} 
+      <TouchableOpacity
+        style={[
+          styles.updateButton,
+          { opacity: loading ? 0.7 : 1 },
+        ]}
         onPress={load}
         disabled={loading}
       >
-        <Ionicons name="refresh" size={20} color="white" style={{ marginRight: 10 }} />
+        <Ionicons
+          name="refresh"
+          size={20}
+          color="white"
+          style={{ marginRight: 10 }}
+        />
         <Text style={styles.updateButtonText}>
           {loading ? "Carregando..." : "Atualizar Cotações"}
         </Text>
