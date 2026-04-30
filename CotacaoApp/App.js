@@ -57,16 +57,7 @@ export default function App() {
             component={ScreenMain}
             options={({ navigation }) => ({
               headerTitle: "Painel de Cotações",
-              headerRight: () => (
-                <TouchableOpacity
-                  onPress={() => {
-                    signOut(auth).then(() => navigation.replace("Login"));
-                  }}
-                  style={{ marginRight: 15 }}
-                >
-                  <Ionicons name="exit-outline" size={24} color="black" />
-                </TouchableOpacity>
-              ),
+              headerShown: false
             })}
           />
         </Stack.Navigator>
@@ -155,7 +146,6 @@ function ScreenCadastrar({ navigation }) {
 
 // 5. Tela Principal 
 function ScreenMain() {
-
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [clickTime, setClickTime] = useState(null);
@@ -176,13 +166,12 @@ function ScreenMain() {
   async function load() {
     setLoading(true);
     try {
-
       const now = new Date();
       setClickTime(
         now.toLocaleTimeString([], {
-          hour: '2-digit',
-          minute: '2-digit',
-          hour12: false
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: false,
         })
       );
 
@@ -198,6 +187,7 @@ function ScreenMain() {
           name: json[key].name.split("/")[0],
           value: json[key].bid,
           flag: `https://flagcdn.com/w40/${paises[currency] || "un"}.png`,
+          flagbr: "https://flagcdn.com/w40/br.png",
         };
       });
 
@@ -244,22 +234,29 @@ function ScreenMain() {
             }}
             renderItem={({ item }) => (
               <View style={styles.itemMoeda}>
-                <View
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                  }}
-                >
-                  <Image
-                    source={{ uri: item.flag }}
-                    style={{
-                      width: 40,
-                      height: 30,
-                      marginRight: 10,
-                      borderRadius: 4,
-                    }}
-                  />
+                {/* LADO ESQUERDO */}
+                <View style={{ flexDirection: "row", alignItems: "center" }}>
 
+                  {/* BANDEIRAS SOBREPOSTAS */}
+                  <View style={{ width: 50, height: 45, marginRight: 10 }}>
+
+                    <View style={styles.flagMain}>
+                      <Image
+                        source={{ uri: item.flag }}
+                        style={styles.flagImage}
+                      />
+                    </View>
+
+                    <View style={styles.flagSecondary}>
+                      <Image
+                        source={{ uri: item.flagbr }}
+                        style={styles.flagImage}
+                      />
+                    </View>
+
+                  </View>
+
+                  {/* TEXTO */}
                   <View>
                     <Text style={styles.siglaMoeda}>
                       {item.currency} / BRL
@@ -270,6 +267,7 @@ function ScreenMain() {
                   </View>
                 </View>
 
+                {/* VALOR */}
                 <Text style={styles.valorMoeda}>
                   R$ {parseFloat(item.value).toFixed(2)}
                 </Text>
@@ -297,7 +295,21 @@ function ScreenMain() {
           {loading ? "Carregando..." : "Atualizar Cotações"}
         </Text>
       </TouchableOpacity>
-    </SafeAreaView>
+
+      <View style={styles.bottomNav}>
+        <TouchableOpacity style={styles.navItem}>
+          <Ionicons name="logo-usd" size={22} color="#fff" />
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.navItem}>
+          <Ionicons name="swap-horizontal" size={22} color="#aaa" />
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.navItem}>
+          <Ionicons name="stats-chart" size={22} color="#aaa" />
+        </TouchableOpacity>
+      </View>
+    </SafeAreaView >
   );
 }
 
@@ -377,10 +389,58 @@ const styles = StyleSheet.create({
     padding: 18,
     borderRadius: 30,
     position: 'absolute',
-    bottom: 20,
+    bottom: 70,
     left: 20,
     right: 20,
     elevation: 5,
   },
+
   updateButtonText: { color: 'white', fontSize: 16, fontWeight: 'bold' },
+  flagMain: {
+    width: 34,
+    height: 34,
+    borderRadius: 13,
+    justifyContent: "center",
+    alignItems: "center",
+    elevation: 3,
+  },
+
+  flagSecondary: {
+    position: "absolute",
+    bottom: -2,
+    right: -2,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: "center",
+    alignItems: "center",
+    elevation: 3,
+  },
+
+  flagImage: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+  },
+
+  bottomNav: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 60,
+    backgroundColor: "#ffffff",
+    flexDirection: "row",
+    justifyContent: "space-around",
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+  },
+
+  navItem: {
+    padding: 10,
+  },
+
 });
